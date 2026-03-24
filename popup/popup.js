@@ -112,7 +112,7 @@ function fetchJSON(key, url) {
   logInfo('→ fetch ' + key, url);
   return fetch(url, {
     method: 'GET',
-    credentials: 'omit',
+    credentials: 'include',
     headers: {
       'Accept': 'application/json, text/plain, */*',
       'Accept-Language': 'th,en;q=0.9',
