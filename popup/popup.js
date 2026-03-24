@@ -271,7 +271,8 @@ function renderHero(sym, fin, hist, chart, profile) {
 function renderStats(fin, hist) {
   var rows=(hist&&(hist.trading||hist.historicalTrading||hist.data))||[];
   var last=rows[0]||{};
-  var mktCap=fin?(fin.marketCap!=null?fin.marketCap:fin.mktCap):null;
+  var finData = Array.isArray(fin) ? fin[fin.length - 1] : (fin || {});
+  var mktCap=finData.marketCap!=null?finData.marketCap:finData.mktCap;
   var vol=last.volume!=null?last.volume:last.vol;
   var stats=[
     {label:'Volume', val:fmtBig(vol),   sub:'shares',   color:'var(--accent)'},
@@ -395,23 +396,29 @@ function attachChartHover(wrap,cd){
 ───────────────────────────────── */
 function renderFinTab(el, fin) {
   if (!fin){ el.innerHTML='<div class="no-data">Financial data unavailable</div>'; return; }
+  
+  var data = Array.isArray(fin) ? fin[fin.length - 1] : fin;
+  var year = data.year || '';
+  
   function g(a,b){return a!=null?a:(b!=null?b:null);}
   var fields=[
-    {l:'P/E',       v:g(fin.pe,fin.peRatio),               c:'var(--accent)'},
-    {l:'P/BV',      v:g(fin.pbv,fin.pbvRatio),              c:'var(--cyan)'},
-    {l:'EPS',       v:fin.eps,                               c:'var(--green)'},
-    {l:'DPS',       v:fin.dps,                               c:'var(--gold)'},
-    {l:'Div Yield', v:g(fin.dividendYield,fin.yield),        c:'var(--purple)',sx:'%'},
-    {l:'Book Val',  v:g(fin.bookValue,fin.bookValuePerShare), c:'var(--pink)'},
-    {l:'ROE',       v:fin.roe,                               c:'var(--green)', sx:'%'},
-    {l:'ROA',       v:fin.roa,                               c:'var(--accent)',sx:'%'},
-    {l:'Net Profit',v:fin.netProfit,                         c:'var(--cyan)',  big:true},
-    {l:'Revenue',   v:fin.revenue,                           c:'var(--gold)',  big:true},
-    {l:'Assets',    v:fin.totalAssets,                       c:'var(--purple)',big:true},
-    {l:'D/E',       v:g(fin.deRatio,fin.debtToEquity),       c:'var(--red)'},
+    {l:'P/E',       v:g(data.pe,data.peRatio),               c:'var(--accent)'},
+    {l:'P/BV',      v:g(data.pbv,data.pbvRatio),              c:'var(--cyan)'},
+    {l:'EPS',       v:data.eps,                               c:'var(--green)'},
+    {l:'DPS',       v:data.dps,                               c:'var(--gold)'},
+    {l:'Div Yield', v:g(data.dividendYield,data.yield),        c:'var(--purple)',sx:'%'},
+    {l:'Net Profit',v:data.netProfit,                         c:'var(--cyan)',  big:true},
+    {l:'Revenue',   v:g(data.totalRevenue,data.revenue),      c:'var(--gold)',  big:true},
+    {l:'ROE',       v:data.roe,                               c:'var(--green)', sx:'%'},
+    {l:'ROA',       v:data.roa,                               c:'var(--accent)',sx:'%'},
+    {l:'D/E',       v:g(data.deRatio,data.debtToEquity),       c:'var(--red)'},
+    {l:'Assets',    v:g(data.totalAsset,data.totalAssets),    c:'var(--purple)',big:true},
   ].filter(function(f){return f.v!=null&&f.v!==''&&f.v!==0;});
+
   if(!fields.length){el.innerHTML='<div class="no-data">No financial metrics in response</div>';return;}
-  el.innerHTML='<div class="fin-grid">'+fields.map(function(f){
+  
+  var yearHtml = year ? '<div style="font-size:10px;color:var(--muted);margin-bottom:12px;text-align:right">Latest Data: FY'+year+'</div>' : '';
+  el.innerHTML=yearHtml+'<div class="fin-grid">'+fields.map(function(f){
     return '<div class="fin-item"><div class="fl">'+f.l+'</div><div class="fv" style="color:'+f.c+'">'+(f.big?fmtBig(f.v):fmt(f.v))+(f.sx||'')+'</div></div>';
   }).join('')+'</div>';
 }
