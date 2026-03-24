@@ -1,0 +1,52 @@
+name: Build and Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Package Extension
+        run: |
+          # Create a zip file containing only the necessary extension files
+          # We exclude git, github actions, and other non-extension files
+          zip -r set-thailand-stock-analyzer-${{ steps.get_version.outputs.VERSION }}.zip \
+            manifest.json \
+            background.js \
+            icons/ \
+            popup/ \
+            README.md \
+            LICENSE \
+            -x "*.DS_Store*"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: set-thailand-stock-analyzer-${{ steps.get_version.outputs.VERSION }}.zip
+          name: Release ${{ github.ref_name }}
+          body: |
+            Automated release of SET Thailand Stock Analyzer Chrome Extension.
+            
+            ### Installation
+            1. Download the `set-thailand-stock-analyzer-${{ steps.get_version.outputs.VERSION }}.zip` asset below.
+            2. Unzip the file.
+            3. Open Chrome and go to `chrome://extensions/`.
+            4. Enable **Developer mode**.
+            5. Click **Load unpacked** and select the unzipped folder.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
