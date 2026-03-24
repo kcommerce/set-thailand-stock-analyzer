@@ -427,14 +427,18 @@ function renderFinTab(el, fin) {
    SHAREHOLDERS TAB
 ───────────────────────────────── */
 function renderHoldersTab(el, holders) {
-  var list=(holders&&(holders.shareholder||holders.shareholders||holders.data))||[];
+  var list=(holders&&(holders.majorShareholders||holders.shareholder||holders.shareholders||holders.data))||[];
   if(!list.length){el.innerHTML='<div class="no-data">No shareholder data</div>';return;}
   var top=list.slice(0,10);
-  var maxPct=Math.max.apply(null,top.map(function(h){return parseFloat(h.percent!=null?h.percent:(h.percentage!=null?h.percentage:(h.holdings||0)));}));
+  var maxPct=Math.max.apply(null,top.map(function(h){
+    var p = h.percentOfShare!=null?h.percentOfShare:(h.percent!=null?h.percent:(h.percentage!=null?h.percentage:(h.holdings||0)));
+    return parseFloat(p);
+  }));
   el.innerHTML='<table class="sh-table"><thead><tr><th>#</th><th>Shareholder</th><th>%</th></tr></thead><tbody>'+
     top.map(function(h,i){
-      var name=h.holderName||h.name||h.holderNameTh||'—';
-      var pct=parseFloat(h.percent!=null?h.percent:(h.percentage!=null?h.percentage:(h.holdings||0)));
+      var name=h.name||h.holderName||h.holderNameTh||'—';
+      var p = h.percentOfShare!=null?h.percentOfShare:(h.percent!=null?h.percent:(h.percentage!=null?h.percentage:(h.holdings||0)));
+      var pct=parseFloat(p);
       var bw=maxPct>0?Math.round(pct/maxPct*100):0;
       return '<tr><td style="color:var(--muted);width:18px;font-size:10px">'+(i+1)+'</td>'+
         '<td><div style="font-size:10px;line-height:1.3">'+esc(clamp(name,32))+'</div>'+
