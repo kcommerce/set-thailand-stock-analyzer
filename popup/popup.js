@@ -239,7 +239,7 @@ function renderDashboard() {
 }
 
 function renderHero(sym, fin, hist, chart, profile) {
-  var rows = (hist&&(hist.trading||hist.historicalTrading||hist.data))||[];
+  var rows = Array.isArray(hist) ? hist : (hist && (hist.trading || hist.historicalTrading || hist.data)) || [];
   var last = rows[0]||{};
   var lastPrice = last.close!=null?last.close:(last.last!=null?last.last:null);
   if (lastPrice==null && chart) {
@@ -269,11 +269,11 @@ function renderHero(sym, fin, hist, chart, profile) {
 }
 
 function renderStats(fin, hist) {
-  var rows=(hist&&(hist.trading||hist.historicalTrading||hist.data))||[];
+  var rows = Array.isArray(hist) ? hist : (hist && (hist.trading || hist.historicalTrading || hist.data)) || [];
   var last=rows[0]||{};
   var finData = Array.isArray(fin) ? fin[fin.length - 1] : (fin || {});
   var mktCap=finData.marketCap!=null?finData.marketCap:finData.mktCap;
-  var vol=last.volume!=null?last.volume:last.vol;
+  var vol=last.totalVolume!=null?last.totalVolume:(last.volume!=null?last.volume:last.vol);
   var stats=[
     {label:'Volume', val:fmtBig(vol),   sub:'shares',   color:'var(--accent)'},
     {label:'High',   val:fmt(last.high), sub:'day high', color:'var(--green)'},
@@ -451,7 +451,7 @@ function renderHoldersTab(el, holders) {
    HISTORY TAB
 ───────────────────────────────── */
 function renderHistoryTab(el, hist) {
-  var rows=(hist&&(hist.trading||hist.historicalTrading||hist.data))||[];
+  var rows=Array.isArray(hist)?hist:(hist&&(hist.trading||hist.historicalTrading||hist.data))||[];
   if(!rows.length){el.innerHTML='<div class="no-data">No historical data</div>';return;}
   el.innerHTML='<div style="overflow-x:auto"><table class="hist-table"><thead><tr>'+
     '<th style="text-align:left">Date</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Vol</th>'+
@@ -460,13 +460,14 @@ function renderHistoryTab(el, hist) {
       var close=r.close!=null?r.close:r.last, open=r.open!=null?r.open:r.prior;
       var isUp=(close!=null&&open!=null)?close>=open:null;
       var cc=isUp===null?'var(--muted)':(isUp?'var(--green)':'var(--red)');
+      var vol=r.totalVolume!=null?r.totalVolume:(r.volume!=null?r.volume:r.vol);
       return '<tr>'+
-        '<td>'+(r.date||(r.datetime||'').slice(0,10))+'</td>'+
+        '<td>'+(r.date||'').slice(0,10)+'</td>'+
         '<td>'+fmt(open)+'</td>'+
         '<td style="color:var(--green)">'+fmt(r.high)+'</td>'+
         '<td style="color:var(--red)">'+fmt(r.low)+'</td>'+
         '<td style="color:'+cc+'">'+fmt(close)+'</td>'+
-        '<td>'+fmtBig(r.volume!=null?r.volume:r.vol)+'</td>'+
+        '<td>'+fmtBig(vol)+'</td>'+
       '</tr>';
     }).join('')+'</tbody></table></div>';
 }
