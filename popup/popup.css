@@ -275,6 +275,39 @@ header {
 .chart-wrap svg { display:block; width:100%; }
 .chart-tooltip { position:absolute; pointer-events:none; background:#0f172a; border:1px solid rgba(255,255,255,.12); border-radius:6px; padding:5px 9px; font-size:11px; font-family:monospace; color:#eef2ff; white-space:nowrap; z-index:10; }
 
+.chart-periods {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+.period-btn {
+  padding: 4px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all .15s;
+}
+.period-btn:hover { color: var(--text); border-color: var(--border2); }
+.period-btn.active {
+  background: rgba(59,130,246,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.chart-loading {
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 /* Financials */
 .fin-grid {
   display:grid; grid-template-columns:repeat(3,1fr); gap:8px;

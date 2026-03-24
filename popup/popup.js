@@ -7,6 +7,7 @@
 
 var currentData = null;
 var activeTab   = 'chart';
+var chartPeriod = '1D';
 
 /* ─────────────────────────────────
    VISIBLE LOG ENGINE
@@ -164,6 +165,7 @@ function doSearch(sym) {
   sym = sym.trim().toUpperCase();
   if (!sym) return;
   LOG_LINES = [];
+  chartPeriod = '1D'; // Reset period on new search
   document.getElementById('symbolInput').value = sym;
   chrome.storage.local.set({lastSymbol: sym});
   setState('loading');
@@ -312,18 +314,75 @@ function renderTab(tab) {
 /* ─────────────────────────────────
    CHART TAB
 ───────────────────────────────── */
+function changeChartPeriod(p) {
+  if (!currentData || chartPeriod === p) return;
+  chartPeriod = p;
+  var el = document.getElementById('tabContent');
+  // Show loading in chart area
+  var wrap = el.querySelector('.chart-wrap');
+  if (wrap) wrap.innerHTML = '<div class="chart-loading"><div class="loader"><span></span><span></span><span></span></div></div>';
+  
+  // Re-sync button states immediately
+  el.querySelectorAll('.period-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.p === p);
+  });
+
+  var url = SET_BASE + '/stock/' + currentData.symbol + '/chart-quotation?period=' + p + '&accumulated=false';
+  fetchJSON('chart-' + p, url)
+    .then(function(data) {
+      currentData.results.chart = data;
+      renderChartTab(el, data);
+    })
+    .catch(function(e) {
+      if (wrap) wrap.innerHTML = '<div class="no-data">Failed to load ' + p + ' chart: ' + e.message + '</div>';
+    });
+}
+
+function attachPeriodEvents(el) {
+  el.querySelectorAll('.period-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      changeChartPeriod(btn.dataset.p);
+    });
+  });
+}
+
 function renderChartTab(el, chart) {
-  if (!chart){ el.innerHTML='<div class="no-data">Chart data unavailable</div>'; return; }
-  var raw=chart.quotations||chart.data||[];
-  var points=raw.filter(function(d){return d.close!=null||d.last!=null||d.value!=null;});
-  var prices=points.map(function(d){return +(d.close!=null?d.close:(d.last!=null?d.last:d.value));});
-  var labels=points.map(function(d){return (d.datetime||'').slice(11,16)||String(d.time||'');});
-  if (prices.length<2){ el.innerHTML='<div class="no-data">Not enough intraday data ('+prices.length+' pts)</div>'; return; }
-  var isUp=prices[prices.length-1]>=prices[0];
-  var color=isUp?'#10b981':'#ef4444';
-  var cd=buildSVGChart(prices,labels,color);
-  el.innerHTML='<div class="chart-wrap" style="position:relative">'+cd.svg+'</div>';
-  attachChartHover(el.querySelector('.chart-wrap'),cd);
+  var periods = ['1D', '1M', '3M', '6M', 'YTD', '1Y'];
+  var periodHtml = '<div class="chart-periods">' + periods.map(function(p){
+    var cls = p === chartPeriod ? 'period-btn active' : 'period-btn';
+    return '<button class="' + cls + '" data-p="' + p + '">' + p + '</button>';
+  }).join('') + '</div>';
+
+  if (!chart){ 
+    el.innerHTML = periodHtml + '<div class="no-data">Chart data unavailable</div>'; 
+    attachPeriodEvents(el);
+    return; 
+  }
+  
+  var raw = chart.quotations||chart.data||[];
+  var points = raw.filter(function(d){return d.price!=null||d.close!=null||d.last!=null||d.value!=null;});
+  var prices = points.map(function(d){return +(d.price!=null?d.price:(d.close!=null?d.close:(d.last!=null?d.last:d.value)));});
+  
+  // Label formatting based on period
+  var labels = points.map(function(d){
+    var dt = d.datetime || d.localDatetime || '';
+    if (chartPeriod === '1D') return dt.slice(11,16);
+    return dt.slice(5, 10); // MM-DD for historical periods
+  });
+
+  if (prices.length < 2) { 
+    el.innerHTML = periodHtml + '<div class="no-data">Not enough data points (' + prices.length + ')</div>'; 
+    attachPeriodEvents(el);
+    return; 
+  }
+
+  var isUp = prices[prices.length-1] >= (chart.prior || prices[0]);
+  var color = isUp ? '#10b981' : '#ef4444';
+  var cd = buildSVGChart(prices, labels, color);
+  
+  el.innerHTML = periodHtml + '<div class="chart-wrap" style="position:relative">' + cd.svg + '</div>';
+  attachChartHover(el.querySelector('.chart-wrap'), cd);
+  attachPeriodEvents(el);
 }
 
 function buildSVGChart(prices,labels,color){
